@@ -67,10 +67,26 @@ class Program
             return;
         }
 
+        //exit if APIStreamUrl is not provided
+        if (settings.APIStreamUrl == null)
+        {
+            Console.WriteLine("APIStreamUrl is not provided");
+            return;
+        }
+
+        //exit if APIUrlCandles is not provided
+        if (settings.APIUrlCandles == null)
+        {
+            Console.WriteLine("APIUrlCandles is not provided");
+            return;
+        }
+
+        //set APIStreamUrl
+        string apiStreamUrl = string.Format(settings.APIStreamUrl, settings.AccountId, settings.Instrument);
 
         //call FormatCandles function to format candles into heikin ashi candles
-        var dataAccess = new DataAccessLayer(settings.AccountId, settings.AccessToken);
-        candles = await dataAccess.GetCandles(settings.Instrument, settings.CandleInterval);
+        var dataAccess = new DataAccessLayer(settings);
+        candles = await dataAccess.GetCandles();
 
         //format candles into heikin ashi candles
         List<Candle> heikinAshiCandles = candleProcessor.FormatCandles(candles);
@@ -89,7 +105,7 @@ class Program
 
 
         ///call StartStreamAsync
-        await StartStreamAsync(candleProcessor, settings.MAPeriod, settings.CandleInterval, settings.AccountId, settings.AccessToken);
+        await StartStreamAsync(apiStreamUrl,candleProcessor, settings.MAPeriod, settings.CandleInterval, settings.AccountId, settings.AccessToken);
 
     }
 
@@ -98,11 +114,11 @@ class Program
     //function that opens stream and listens for events, every 5 minutes adds a candle to the list
 
 
-    static async Task StartStreamAsync(CandleProcessor candleProcessor, int maPeriod, int candleInterval, string accountId, string accountToken)
+    static async Task StartStreamAsync(string apiStreamUrl, CandleProcessor candleProcessor, int maPeriod, int candleInterval, string accountId, string accountToken)
     {
         try
         {
-            string endpoint = "https://stream-fxtrade.oanda.com/v3/accounts/" + accountId + "/pricing/stream?instruments=USD_JPY";
+            string endpoint = apiStreamUrl;
             using (var client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Add("Authorization", "Bearer " + accountToken);

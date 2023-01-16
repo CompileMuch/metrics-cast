@@ -2,25 +2,64 @@ using System.Net.Http;
 using Newtonsoft.Json;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using Microsoft.Extensions.Configuration;
 
 public class DataAccessLayer
 {
     private readonly HttpClient _client;
     private readonly string _accountId;
     private readonly string _accessToken;
+    private readonly string _instrument;
+    private readonly int _interval;
+    private string _apiUrl;
 
-    public DataAccessLayer(string accountId, string accessToken)
+    public DataAccessLayer(OandaOptions settings)
     {
+
+        //check if the config is null
+        if (settings == null)
+        {
+            throw new ArgumentNullException(nameof(settings));
+        }
+        //check if the config is valid
+        if (string.IsNullOrEmpty(settings.AccountId))
+        {
+            throw new ArgumentException("AccountId is null or empty", nameof(settings.AccountId));
+        }
+        if (string.IsNullOrEmpty(settings.AccessToken))
+        {
+            throw new ArgumentException("AccessToken is null or empty", nameof(settings.AccessToken));
+        }
+        if (string.IsNullOrEmpty(settings.Instrument))
+        {
+            throw new ArgumentException("Instrument is null or empty", nameof(settings.Instrument));
+        }
+        if (settings.CandleInterval <= 0)
+        {
+            throw new ArgumentException("Interval is less than or equal to zero", nameof(settings.CandleInterval));
+        }
+        if (string.IsNullOrEmpty(settings.APIUrlCandles))
+        {
+            throw new ArgumentException("APIUrlCandles is null or empty", nameof(settings.APIUrlCandles));
+        }
+
+
+       
         _client = new HttpClient();
-        _accountId = accountId;
-        _accessToken = accessToken;
+        _accountId = settings.AccountId;
+        _accessToken = settings.AccessToken;
+        _instrument = settings.Instrument;
+        _interval = settings.CandleInterval;
+        _apiUrl = string.Format(settings.APIUrlCandles, _instrument, _interval);
+          
+
     }
 
-    public async Task<List<Candle>> GetCandles(string instrument, int interval)
+    public async Task<List<Candle>> GetCandles()
     {
-        string endpoint = $"https://api-fxtrade.oanda.com/v3/instruments/{instrument}/candles?interval={interval}";
+        
         _client.DefaultRequestHeaders.Add("Authorization", "Bearer " + _accessToken);
-        var response = await _client.GetAsync(endpoint);
+        var response = await _client.GetAsync(_apiUrl);
         if (response.IsSuccessStatusCode)
         {
             var jsonString = await response.Content.ReadAsStringAsync();
@@ -56,30 +95,5 @@ public class DataAccessLayer
         }
     }
 
-    public async Task<double> GetCloseoutPrice(string instrument)
-    {
-        try
-        {
-            var endpoint = $"https://api-fxtrade.oanda.com/v3/accounts/{_accountId}/pricing?instruments={instrument}";
-            var client = new HttpClient();
-            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_accessToken}");
-            var response = await client.GetAsync(endpoint);
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                var data = JsonConvert.DeserializeObject<PriceData>(json);
-                return double.Parse(data.CloseoutAsk);
-            }
-            else
-            {
-                throw new Exception("Failed to retrieve closeout price data.");
-            }
-        }
-        catch (Exception ex)
-        {
-            //log exception
-            throw;
-        }
-    }
-
+   
 }

@@ -7,4 +7,6 @@ public class OandaOptions
     public string Instrument { get; set; }
     public int CandleInterval { get; set; }
     public int MAPeriod { get; set; }
+    public string APIUrlCandles { get; set; }
+    public string APIStreamUrl { get; set; }
 }
