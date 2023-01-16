@@ -61,4 +61,16 @@ dotnet run
 ```
 dotnet new gitignore
 ```
+
+# Financial Risk Disclaimer
+
+The contents of this repository are for informational purposes only and do not constitute financial advice or a recommendation to buy or sell any securities. None of the information contained in this repository is intended to be, and shall not be deemed to be, an offer to sell or a solicitation of an offer to buy any securities.
+
+The information provided in this repository is not intended for distribution to, or use by, any person or entity in any jurisdiction or country where such distribution or use would be contrary to law or regulation.
+
+Trading in financial instruments and/or cryptocurrencies involves high risks including the risk of losing some, or all, of your investment amount, and may not be suitable for all investors. Prices of cryptocurrencies are extremely volatile and may be affected by external factors such as financial, regulatory or political events. Trading on margin increases the financial risks.
+
+Before deciding to trade in financial instruments or cryptocurrencies you should carefully consider your investment objectives, level of experience, and risk appetite. Under no circumstances shall the creator(s) of this repository be liable for any direct or indirect, special, incidental, or consequential damages, arising out of the use of the contents of this repository.
+
+You should always consult a licensed financial advisor or conduct your own due diligence and research before making any investment decisions. The contents of this repository do not constitute financial, legal, or tax advice.
  
