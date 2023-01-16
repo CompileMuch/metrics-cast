@@ -192,7 +192,7 @@ class Program
                         //if moving average is less than the last candle close price, then buy
                         else if (maPeriod < heikinAshiCandles[heikinAshiCandles.Count - 1].close)
                         {
-                            Console.WriteLine("But");
+                            Console.WriteLine("Buy");
                         }
                         //if moving average is equal to the last candle close price, then do nothing
                         else
