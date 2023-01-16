@@ -28,11 +28,14 @@ public class CandleProcessor
 
     public double CalculateMovingAverage(List<Candle> candles, int period)
     {
-         double sum = 0;
-        for (int i = 0; i < candles.Count; i++)
+
+        //get the last period candles and calculate the average
+        List<Candle> lastPeriodCandles = candles.GetRange(candles.Count - period, period);
+        double sum = 0;
+        foreach (Candle candle in lastPeriodCandles)
         {
-            sum += candles[i].close;
+            sum += candle.close;
         }
-        return (double)(sum / candles.Count);
+        return sum / period;
     }
 }

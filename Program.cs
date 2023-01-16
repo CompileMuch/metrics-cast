@@ -2,13 +2,8 @@
 using Newtonsoft.Json.Linq;
 using Microsoft.Extensions.Configuration;
 
-
-
 class Program
 {
-
-
-
 
     static List<Candle> candles;
 
@@ -21,6 +16,11 @@ class Program
     static bool isSameTime = false;
     static DateTime lastCandleAdded;
 
+    static double movingAverage;
+    static CandleProcessor candleProcessor = new CandleProcessor();
+
+    static OandaOptions settings;
+
 
     private static async Task Main(string[] args)
     {
@@ -32,8 +32,15 @@ class Program
                     .AddJsonFile("appsettings.json", optional: false);
 
         IConfiguration config = builder.Build();
+        //check if config.GetRequiredSection("Oanda") is null
+        if (config.GetRequiredSection("Oanda") == null)
+        {
+            Console.WriteLine("Oanda section is not provided");
+            return;
+        }
+
         // Get values from the config given their key and their target type.
-        OandaOptions settings = config.GetRequiredSection("Oanda").Get<OandaOptions>();
+         settings = config.GetRequiredSection("Oanda").Get<OandaOptions>();
 
         //exit if access token is not provided
         if (settings.AccessToken == null)
@@ -65,32 +72,21 @@ class Program
         var dataAccess = new DataAccessLayer(settings.AccountId, settings.AccessToken);
         candles = await dataAccess.GetCandles(settings.Instrument, settings.CandleInterval);
 
-
-
-        CandleProcessor candleProcessor = new CandleProcessor();
+        //format candles into heikin ashi candles
         List<Candle> heikinAshiCandles = candleProcessor.FormatCandles(candles);
+        //calculate moving average
+        movingAverage = candleProcessor.CalculateMovingAverage(heikinAshiCandles, settings.MAPeriod);
+
 
 
         //output moving average and close price of the last heikin ashi candle
-        Console.WriteLine("Moving average: " + settings.MAPeriod);
+        Console.WriteLine("Moving average: " + movingAverage);
         Console.WriteLine("Last candle close price: " + heikinAshiCandles[heikinAshiCandles.Count - 1].close);
 
+        BusinessLogic logic = new BusinessLogic();
+        logic.ProcessTradeDecision(movingAverage, heikinAshiCandles[heikinAshiCandles.Count - 1].close);
 
-        //if moving average is greater than the last candle close price, then sell
-        if (settings.MAPeriod > heikinAshiCandles[heikinAshiCandles.Count - 1].close)
-        {
-            Console.WriteLine("Sell");
-        }
-        //if moving average is less than the last candle close price, then buy
-        else if (settings.MAPeriod < heikinAshiCandles[heikinAshiCandles.Count - 1].close)
-        {
-            Console.WriteLine("Buy");
-        }
-        //if moving average is equal to the last candle close price, then do nothing
-        else
-        {
-            Console.WriteLine("Do nothing");
-        }
+
 
         ///call StartStreamAsync
         await StartStreamAsync(candleProcessor, settings.MAPeriod, settings.CandleInterval, settings.AccountId, settings.AccessToken);
@@ -180,17 +176,21 @@ class Program
                         //call FormatCandles function to format candles into heikin ashi candles
                         List<Candle> heikinAshiCandles = candleProcessor.FormatCandles(candles);
 
+                        movingAverage = candleProcessor.CalculateMovingAverage(heikinAshiCandles, settings.MAPeriod);
+
                         //output moving average and close price of the last heikin ashi candle
-                        Console.WriteLine("Moving average: " + maPeriod);
+                        Console.WriteLine("Moving average: " + movingAverage);
                         Console.WriteLine("Last candle close price: " + heikinAshiCandles[heikinAshiCandles.Count - 1].close);
 
+                         
+
                         //if moving average is greater than the last candle close price, then sell
-                        if (maPeriod > heikinAshiCandles[heikinAshiCandles.Count - 1].close)
+                        if (movingAverage > heikinAshiCandles[heikinAshiCandles.Count - 1].close)
                         {
                             Console.WriteLine("Sell");
                         }
                         //if moving average is less than the last candle close price, then buy
-                        else if (maPeriod < heikinAshiCandles[heikinAshiCandles.Count - 1].close)
+                        else if (movingAverage < heikinAshiCandles[heikinAshiCandles.Count - 1].close)
                         {
                             Console.WriteLine("Buy");
                         }
@@ -210,34 +210,7 @@ class Program
         }
     }
 
-    //function to check latest heikin ashi candle and moving average and determine to buy, sell or do nothing
-    static void CheckCandle(CandleProcessor candleProcessor, int maPeriod)
-    {
-        //call FormatCandles function to format candles into heikin ashi candles
-        List<Candle> heikinAshiCandles = candleProcessor.FormatCandles(candles);
-
-        //output moving average and close price of the last heikin ashi candle
-        Console.WriteLine("Moving average: " + maPeriod);
-        Console.WriteLine("Last candle close price: " + heikinAshiCandles[heikinAshiCandles.Count - 1].close);
-
-        if (maPeriod > heikinAshiCandles[heikinAshiCandles.Count - 1].close)
-        {
-            Console.WriteLine("Buy");
-        }
-        else if (maPeriod < heikinAshiCandles[heikinAshiCandles.Count - 1].close)
-        {
-            Console.WriteLine("Sell");
-        }
-        else
-        {
-            Console.WriteLine("Do nothing");
-        }
-
-    }
-
-
-
-
+  
     static List<Candle> GetCandles(int maPeriod, int candleInterval, string instrument, string accessToken)
     {
         using (var client = new HttpClient())
@@ -271,15 +244,6 @@ class Program
         }
     }
 
-    static double CalculateMovingAverage()
-    {
-        double sum = 0;
-        for (int i = 0; i < candles.Count; i++)
-        {
-            sum += candles[i].close;
-        }
-        return (double)(sum / candles.Count);
-    }
 
 
 }

@@ -35,7 +35,19 @@ public class DataAccessLayer
             {
                 throw new Exception("No candles found");
             }
-            var candles = jsonObject["candles"].ToObject<List<Candle>>();
+            var oandaCandle = jsonObject["candles"].ToObject<List<OandaCandle>>();
+            //convert oandaCandle to Candle
+            List<Candle> candles = new List<Candle>();
+            foreach (var candle in oandaCandle)
+            {
+                Candle newCandle = new Candle();
+                newCandle.time = candle.time;
+                newCandle.open = candle.mid.o;
+                newCandle.high = candle.mid.h;
+                newCandle.low = candle.mid.l;
+                newCandle.close = candle.mid.c;
+                candles.Add(newCandle);
+            }
             return candles;
         }
         else
