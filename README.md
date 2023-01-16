@@ -15,7 +15,7 @@ In this code, we use the pricing data from the Oanda API to create Heikin Ashi a
 ## Strategy
 The strategy involves monitoring the relationship between the Heikin Ashi candles and the moving average indicator. When the moving average indicator crosses below the Heikin Ashi candles, it generates a buy signal, indicating that the market is in an uptrend. Conversely, when the moving average indicator crosses above the Heikin Ashi candles, it generates a sell signal, indicating that the market is in a downtrend.
 
-![alt text](https://raw.githubusercontent.com/CompileMuch/metrics-cast/00e6019366244d62d2a7e79ffc0f8ab9c9769a55/assets/buy-sell.jpg)
+![alt text](https://raw.githubusercontent.com/CompileMuch/metrics-cast/master/assets/buy-sell.jpg)
 
 It is important to note that this strategy is based on the assumption that past market trends will continue into the future, which may not always be the case. Therefore, it is important to use other forms of analysis and risk management techniques in conjunction with this strategy. Additionally, it's important to consider the market conditions and the volatility of the asset being traded before making any buying or selling decisions.
 
