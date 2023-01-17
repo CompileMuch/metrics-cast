@@ -81,6 +81,8 @@ class Program
             return;
         }
 
+        TradeState tradeState = new TradeState();
+
         //set APIStreamUrl
         string apiStreamUrl = string.Format(settings.APIStreamUrl, settings.AccountId, settings.Instrument);
 
@@ -105,7 +107,7 @@ class Program
 
 
         ///call StartStreamAsync
-        await StartStreamAsync(apiStreamUrl,candleProcessor, settings.MAPeriod, settings.CandleInterval, settings.AccountId, settings.AccessToken);
+        await StartStreamAsync(apiStreamUrl,candleProcessor, settings.MAPeriod, settings.CandleInterval, settings.AccountId, settings.AccessToken, tradeState);
 
     }
 
@@ -114,7 +116,7 @@ class Program
     //function that opens stream and listens for events, every 5 minutes adds a candle to the list
 
 
-    static async Task StartStreamAsync(string apiStreamUrl, CandleProcessor candleProcessor, int maPeriod, int candleInterval, string accountId, string accountToken)
+    static async Task StartStreamAsync(string apiStreamUrl, CandleProcessor candleProcessor, int maPeriod, int candleInterval, string accountId, string accountToken, TradeState tradeState)
     {
         try
         {
@@ -130,7 +132,7 @@ class Program
                         string line = await reader.ReadLineAsync();
                         PriceData data = JsonConvert.DeserializeObject<PriceData>(line);
                         Console.WriteLine("Price: " + data.CloseoutAsk);
-                        ProcessPrice(candleProcessor, data, maPeriod, candleInterval);
+                        ProcessPrice(candleProcessor, data, maPeriod, candleInterval, tradeState);
                     }
                 }
             }
@@ -147,7 +149,7 @@ class Program
 
 
 
-    static void ProcessPrice(CandleProcessor candleProcessor, PriceData data, int maPeriod, int candleInterval)
+    static void ProcessPrice(CandleProcessor candleProcessor, PriceData data, int maPeriod, int candleInterval, TradeState tradeState)
     {
         //set lastCandleAdded to current time
         lastCandleAdded = DateTime.Now;
@@ -204,16 +206,20 @@ class Program
                         if (movingAverage > heikinAshiCandles[heikinAshiCandles.Count - 1].close)
                         {
                             Console.WriteLine("Sell");
+                             tradeState.SetShort();
+
                         }
                         //if moving average is less than the last candle close price, then buy
                         else if (movingAverage < heikinAshiCandles[heikinAshiCandles.Count - 1].close)
                         {
                             Console.WriteLine("Buy");
+                            tradeState.SetLong();
                         }
                         //if moving average is equal to the last candle close price, then do nothing
                         else
                         {
                             Console.WriteLine("Do nothing");
+                            tradeState.SetSameTime();
                         }
 
                     }
