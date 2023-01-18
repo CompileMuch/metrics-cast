@@ -17,7 +17,8 @@ class Program
     static DateTime lastCandleAdded;
 
     static double movingAverage;
-    static CandleProcessor candleProcessor = new CandleProcessor();
+    static ICandleProcessor candleProcessor;
+
 
     static OandaOptions settings;
 
@@ -29,7 +30,7 @@ class Program
 
         var builder = new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("appsettings.json", optional: false);
+                    .AddJsonFile("appsettings.local.json", optional: false);
 
         IConfiguration config = builder.Build();
         //check if config.GetRequiredSection("Oanda") is null
@@ -40,7 +41,9 @@ class Program
         }
 
         // Get values from the config given their key and their target type.
-         settings = config.GetRequiredSection("Oanda").Get<OandaOptions>();
+        settings = config.GetRequiredSection("Oanda").Get<OandaOptions>();
+
+        ICandleProcessor candleProcessor = new CandleProcessor();
 
         //exit if access token is not provided
         if (settings.AccessToken == null)
@@ -87,7 +90,8 @@ class Program
         string apiStreamUrl = string.Format(settings.APIStreamUrl, settings.AccountId, settings.Instrument);
 
         //call FormatCandles function to format candles into heikin ashi candles
-        var dataAccess = new DataAccessLayer(settings);
+        // var dataAccess = new DataAccessLayer(settings);
+        IDataAccessLayer dataAccess = new DataAccessLayer(settings);
         candles = await dataAccess.GetCandles();
 
         //format candles into heikin ashi candles
@@ -101,13 +105,13 @@ class Program
         Console.WriteLine("Moving average: " + movingAverage);
         Console.WriteLine("Last candle close price: " + heikinAshiCandles[heikinAshiCandles.Count - 1].close);
 
-        BusinessLogic logic = new BusinessLogic();
+        IBusinessLogic logic = new BusinessLogic();
         logic.ProcessTradeDecision(movingAverage, heikinAshiCandles[heikinAshiCandles.Count - 1].close);
 
 
 
         ///call StartStreamAsync
-        await StartStreamAsync(apiStreamUrl,candleProcessor, settings.MAPeriod, settings.CandleInterval, settings.AccountId, settings.AccessToken, tradeState);
+        await StartStreamAsync(apiStreamUrl, candleProcessor, settings.MAPeriod, settings.CandleInterval, settings.AccountId, settings.AccessToken, tradeState);
 
     }
 
@@ -116,11 +120,13 @@ class Program
     //function that opens stream and listens for events, every 5 minutes adds a candle to the list
 
 
-    static async Task StartStreamAsync(string apiStreamUrl, CandleProcessor candleProcessor, int maPeriod, int candleInterval, string accountId, string accountToken, TradeState tradeState)
+    static async Task StartStreamAsync(string apiStreamUrl, ICandleProcessor candleProcessor, int maPeriod, int candleInterval, string accountId, string accountToken, TradeState tradeState)
     {
         try
         {
             string endpoint = apiStreamUrl;
+            //set lastPrice
+            string lastPrice = "";
             using (var client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Add("Authorization", "Bearer " + accountToken);
@@ -131,8 +137,18 @@ class Program
                     {
                         string line = await reader.ReadLineAsync();
                         PriceData data = JsonConvert.DeserializeObject<PriceData>(line);
-                        Console.WriteLine("Price: " + data.CloseoutAsk);
-                        ProcessPrice(candleProcessor, data, maPeriod, candleInterval, tradeState);
+                        //write data.CloseoutAsk to console if not empty and not the same as previous price
+                        //remove whitespace from data.CloseoutAsk and if null set to ""
+                        data.CloseoutAsk = data.CloseoutAsk?.Trim() ?? "";
+
+                        if (data.CloseoutAsk != "" && data.CloseoutAsk != lastPrice)
+                        {
+                            Console.WriteLine("Price: " + data.CloseoutAsk);
+                            lastPrice = data.CloseoutAsk;
+                            ProcessPrice(candleProcessor, data, maPeriod, candleInterval, tradeState);
+                        }
+
+
                     }
                 }
             }
@@ -149,7 +165,7 @@ class Program
 
 
 
-    static void ProcessPrice(CandleProcessor candleProcessor, PriceData data, int maPeriod, int candleInterval, TradeState tradeState)
+    static void ProcessPrice(ICandleProcessor candleProcessor, PriceData data, int maPeriod, int candleInterval, TradeState tradeState)
     {
         //set lastCandleAdded to current time
         lastCandleAdded = DateTime.Now;
@@ -200,13 +216,13 @@ class Program
                         Console.WriteLine("Moving average: " + movingAverage);
                         Console.WriteLine("Last candle close price: " + heikinAshiCandles[heikinAshiCandles.Count - 1].close);
 
-                         
+
 
                         //if moving average is greater than the last candle close price, then sell
                         if (movingAverage > heikinAshiCandles[heikinAshiCandles.Count - 1].close)
                         {
                             Console.WriteLine("Sell");
-                             tradeState.SetShort();
+                            tradeState.SetShort();
 
                         }
                         //if moving average is less than the last candle close price, then buy
@@ -232,39 +248,8 @@ class Program
         }
     }
 
-  
-    static List<Candle> GetCandles(int maPeriod, int candleInterval, string instrument, string accessToken)
-    {
-        using (var client = new HttpClient())
-        {
-            client.DefaultRequestHeaders.Add("Authorization", "Bearer " + accessToken);
-            //set get url and get response 
-            var url = "https://api-fxtrade.oanda.com/v3/instruments/" + instrument + "/candles?smooth=true&price=M&count=" + maPeriod + "&granularity=M" + candleInterval;
-            //https://api-fxtrade.oanda.com/v3/instruments/USD_JPY/candles?count=15&price=M&granularity=M5&smooth=true
-            var response = client.GetAsync(url).Result;
-            if (response.IsSuccessStatusCode)
-            {
-                var json = JObject.Parse(response.Content.ReadAsStringAsync().Result);
-                List<Candle> candles = new List<Candle>();
-                foreach (var candle in json["candles"])
-                {
-                    Candle newCandle = new Candle();
-                    newCandle.time = candle["time"].Value<DateTime>();
-                    newCandle.open = candle["mid"]["o"].Value<double>();
-                    newCandle.high = candle["mid"]["h"].Value<double>();
-                    newCandle.low = candle["mid"]["l"].Value<double>();
-                    newCandle.close = candle["mid"]["c"].Value<double>();
-                    candles.Add(newCandle);
-                }
-                return candles;
-            }
-            else
-            {
-                Console.WriteLine("Error in getting candles: " + response.ReasonPhrase);
-                return null;
-            }
-        }
-    }
+
+
 
 
 

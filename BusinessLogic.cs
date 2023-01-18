@@ -1,4 +1,4 @@
-public class BusinessLogic
+public class BusinessLogic : IBusinessLogic
 {
     public void ProcessTradeDecision(double movingAverage, double lastCandleClosePrice)
     {

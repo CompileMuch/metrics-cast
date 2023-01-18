@@ -1,4 +1,4 @@
-public class CandleProcessor
+public class CandleProcessor : ICandleProcessor
 {
     
     public List<Candle> FormatCandles(List<Candle> candles)

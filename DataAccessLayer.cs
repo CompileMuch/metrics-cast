@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Microsoft.Extensions.Configuration;
 
-public class DataAccessLayer
+public class DataAccessLayer : IDataAccessLayer
 {
     private readonly HttpClient _client;
     private readonly string _accountId;
@@ -95,5 +95,8 @@ public class DataAccessLayer
         }
     }
 
-   
+    public Task<double> GetCloseoutPrice(string instrument)
+    {
+        throw new NotImplementedException();
+    }
 }
