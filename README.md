@@ -1,4 +1,4 @@
-![alt text](https://raw.githubusercontent.com/CompileMuch/metrics-cast/master/assets/logo-mc.png)
+![alt text](https://raw.githubusercontent.com/CompileMuch/metrics-cast/master/assets/logo-mc-2.png)
 # About
 ## Oanda API
 This sample code demonstrates how to access the pricing endpoint of the Oanda API and process the pricing data for a given instrument, and also illustrates the implementation of Heikin Ashi and Moving Average indicators using that data.
