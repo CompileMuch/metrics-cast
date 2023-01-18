@@ -30,7 +30,7 @@ class Program
 
         var builder = new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("appsettings.local.json", optional: false);
+                    .AddJsonFile("appsettings.json", optional: false);
 
         IConfiguration config = builder.Build();
         //check if config.GetRequiredSection("Oanda") is null
