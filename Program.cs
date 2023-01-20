@@ -26,8 +26,6 @@ class Program
     private static async Task Main(string[] args)
     {
 
-
-
         var builder = new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
                     .AddJsonFile("appsettings.json", optional: false);
@@ -135,7 +133,9 @@ class Program
                 {
                     while (!reader.EndOfStream)
                     {
-                        string line = await reader.ReadLineAsync();
+                        
+                        string line = await reader.ReadLineAsync() ?? "";
+                        
                         PriceData data = JsonConvert.DeserializeObject<PriceData>(line);
                         //write data.CloseoutAsk to console if not empty and not the same as previous price
                         //remove whitespace from data.CloseoutAsk and if null set to ""
